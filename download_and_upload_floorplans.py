@@ -116,47 +116,46 @@ def main():
     df = pd.read_csv('bayut_floor_plans_sample.csv')
 
     # Replace this with your Google Drive folder ID
-    FOLDER_ID = '1r1AlwkbZTbK9s4uyyfpyMIZCybVAWX7E'
+    FOLDER_ID = '1VYAd9zGRs13zWAIPcvboF8GXl1d7tVHY'
 
-    # Prepare URLs and filenames for async download
-    urls_and_filenames = []
+    # Prepare URLs and filenames and process one at a time
+    successful_count = 0
+    total_images = sum(len(eval(row['image2D_url'])) for _, row in df.iterrows())
+    
+    print(f"Starting processing of {total_images} images...")
+    
     for _, row in df.iterrows():
         url_list = eval(row['image2D_url'])
-        # Clean the title to make it filesystem-friendly
         title = row['title'].replace(' - ', '_').replace(' ', '_')
-        # Extract external ID from the URL
         external_id = row['url'].split('details-')[-1].split('.')[0]
+        
         for i, url in enumerate(url_list):
-            # Create filename using title, external ID and sequential number
             filename = f"temp_images/{title}_{external_id}_{i+1}{os.path.splitext(url)[1]}"
-            urls_and_filenames.append((url, filename))
-
-    # Start download timer
-    download_start_time = time.time()
-    print(f"Starting download of {len(urls_and_filenames)} images...")
-
-    # Run async download
-    image_count = asyncio.run(download_all_images(urls_and_filenames))
-
-    download_time = time.time() - download_start_time
-    print(f"Downloaded {image_count} images in {download_time:.2f} seconds.")
-
-    # Start upload timer
-    upload_start_time = time.time()
-    print("Starting upload of images...")
-
-    # Run async upload
-    upload_count = asyncio.run(upload_all_files(service, FOLDER_ID, 'temp_images'))
-
-    upload_time = time.time() - upload_start_time
-    print(f"Uploaded {upload_count} images in {upload_time:.2f} seconds.")
+            
+            # Download single image
+            if asyncio.run(download_all_images([(url, filename)])):
+                # Upload the image
+                if asyncio.run(upload_all_files(service, FOLDER_ID, 'temp_images')):
+                    successful_count += 1
+                
+                # Delete the temporary file
+                try:
+                    os.remove(filename)
+                except Exception as e:
+                    print(f"Error deleting {filename}: {str(e)}")
+            
+            print(f"Processed {successful_count}/{total_images} images")
 
     # Clean up the temporary directory
-    os.rmdir('temp_images')
+    try:
+        os.rmdir('temp_images')
+    except Exception as e:
+        print(f"Error removing temporary directory: {str(e)}")
 
     # Calculate and print the total execution time
     total_time = time.time() - start_time
-    print(f"Total time for processing: {total_time:.2f} seconds.")
+    print(f"Total time for processing: {total_time:.2f} seconds")
+    print(f"Successfully processed {successful_count} out of {total_images} images")
 
 if __name__ == '__main__':
     main()
