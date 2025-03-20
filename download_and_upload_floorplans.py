@@ -155,7 +155,7 @@ def main():
     df = pd.read_csv('bayut_floor_plans.csv')
 
     # Replace this with your Google Drive folder ID
-    FOLDER_ID = '1R-KkCK51NhDRzCLwaTsm8en6_2N2gOlt'
+    FOLDER_ID = '1o96crsdv7fHUx3NqDfbODy0iOmdCesrP'
 
     # Prepare all URLs and filenames
     all_files = []
